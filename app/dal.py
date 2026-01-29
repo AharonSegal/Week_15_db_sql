@@ -229,4 +229,6 @@ def get_customers_payments_by_lastname_pattern():
                 "contactFirstName": row[1],
             }
         )
+    return results
+
 
