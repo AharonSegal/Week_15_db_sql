@@ -5,7 +5,6 @@ docker push aharonsegal/sqlbasic:latest
 # login 
 oc login --token=sha256~e0lEK1O8KDwKOmSinx1ZJfMle1AiMp-PxEva4clwM0g --server=https://api.rm2.thpm.p1.openshiftapps.com:6443
 
-
 # create
 oc apply -f k8s/
 oc delete -f k8s/
