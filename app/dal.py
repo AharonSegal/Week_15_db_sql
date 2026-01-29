@@ -1,6 +1,10 @@
 from typing import List, Dict, Any
 from db import get_db_connection
 
+
+# i know remaking the connection isnt correct but i dont have time to make a function 
+# i just did a copy pase 
+
 # 1 
 def get_customers_by_credit_limit_range():
     """Return customers with credit limits outside the normal range."""
@@ -40,24 +44,6 @@ def get_orders_with_null_comments():
     WHERE orders.comments IS NULL
     ORDER BY orders.orderDate 
     """
-
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
-
-    results = []
-    for row in rows:
-        results.append(
-            {
-                "orderNumber": row[0],
-                "comments": row[1],
-            }
-        )
-
-    return results
 
 # 3
 def get_first_5_customers():

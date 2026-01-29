@@ -1,28 +1,153 @@
-time to connect 
-
-i have the dal ready file 
-
-from typing import List, Dict, Any
+dal.py
+-----
+```python
 from db import get_db_connection
 
 
-# 1 
-def get_customers_by_credit_limit_range():
-    """Return customers with credit limits outside the normal range."""
+def fetch_all(sql, params=None):
+    # run a select query and return all rows
+    connection = get_db_connection()
+    cursor = connection.cursor()
 
+    if params is None:
+        cursor.execute(sql)
+    else:
+        cursor.execute(sql, params)
+
+    rows = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return rows
+
+
+def fetch_one(sql, params=None):
+    # run a select query and return one row
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    if params is None:
+        cursor.execute(sql)
+    else:
+        cursor.execute(sql, params)
+
+    row = cursor.fetchone()
+    cursor.close()
+    connection.close()
+    return row
+
+
+def q1_customers_by_credit_limit_range():
+    # customers with credit limits outside the normal range
     sql = """
     SELECT customers.customerName, customers.creditLimit
     FROM customers
     WHERE customers.creditLimit < 10000 OR customers.creditLimit > 100000
     ORDER BY customers.creditLimit
     """
+    return fetch_all(sql)
 
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
+
+def q2_orders_with_null_comments():
+    # orders where comments is null
+    sql = """
+    SELECT orders.orderNumber, orders.comments
+    FROM orders
+    WHERE orders.comments IS NULL
+    ORDER BY orders.orderDate
+    """
+    return fetch_all(sql)
+
+
+def q3_first_5_customers():
+    # first 5 customers ordered by contact last name
+    sql = """
+    SELECT customers.customerName, customers.contactLastName, customers.contactFirstName
+    FROM customers
+    ORDER BY customers.contactLastName
+    LIMIT 5
+    """
+    return fetch_all(sql)
+
+
+def q4_payments_total_and_average():
+    # total average min and max of payments amount
+    sql = """
+    SELECT SUM(payments.amount), AVG(payments.amount), MIN(payments.amount), MAX(payments.amount)
+    FROM payments
+    """
+    return fetch_one(sql)
+
+
+def q5_employees_with_office_phone():
+    # employees with office phone numbers
+    sql = """
+    SELECT employees.firstName, employees.lastName, offices.phone
+    FROM employees
+    JOIN offices ON employees.officeCode = offices.officeCode
+    ORDER BY employees.lastName, employees.firstName
+    """
+    return fetch_all(sql)
+
+
+def q6_customers_with_shipping_dates():
+    # customers with their order shipped dates
+    sql = """
+    SELECT customers.customerName, orders.shippedDate
+    FROM customers
+    JOIN orders ON customers.customerNumber = orders.customerNumber
+    ORDER BY customers.customerName, orders.shippedDate
+    """
+    return fetch_all(sql)
+
+
+def q7_customer_quantity_per_order():
+    # customer name with quantity ordered per order line
+    sql = """
+    SELECT customers.customerName, orderdetails.quantityOrdered
+    FROM customers
+    JOIN orders ON customers.customerNumber = orders.customerNumber
+    JOIN orderdetails ON orders.orderNumber = orderdetails.orderNumber
+    ORDER BY customers.customerName
+    """
+    return fetch_all(sql)
+
+
+def q8_customers_payments_by_lastname_pattern(pattern):
+    # customers with total payments where contact last name matches a pattern
+    sql = """
+    SELECT customers.customerName, customers.contactLastName, SUM(payments.amount)
+    FROM customers
+    JOIN payments ON customers.customerNumber = payments.customerNumber
+    WHERE customers.contactLastName LIKE %s
+    GROUP BY customers.customerNumber, customers.customerName, customers.contactLastName
+    ORDER BY customers.contactLastName, customers.customerName
+    """
+    like_value = "%" + pattern + "%"
+    return fetch_all(sql, (like_value,))
+```
+
+-----
+main.py
+-----
+```python
+from fastapi import FastAPI
+from db_init import init_database
+import dal
+
+app = FastAPI()
+
+init_database()
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
+@app.get("/q1/customers-credit-limit-outliers")
+def customers_credit_limit_outliers():
+    # dal returns tuples and the endpoint builds the json response
+    rows = dal.q1_customers_by_credit_limit_range()
 
     results = []
     for row in rows:
@@ -33,25 +158,12 @@ def get_customers_by_credit_limit_range():
             }
         )
 
-    return results
+    return {"results": results}
 
 
-# 2 
-def get_orders_with_null_comments():
-    """Return orders that have null comments."""
-    sql = """
-    SELECT orders.orderNumber, orders.comments
-    FROM orders
-    WHERE orders.comments IS NULL
-    ORDER BY orders.orderDate 
-    """
-
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
+@app.get("/q2/orders-null-comments")
+def orders_null_comments():
+    rows = dal.q2_orders_with_null_comments()
 
     results = []
     for row in rows:
@@ -62,24 +174,12 @@ def get_orders_with_null_comments():
             }
         )
 
-    return results
+    return {"results": results}
 
-# 3
-def get_first_5_customers():
-    """Return the first 5 customers."""
-    sql = """
-    SELECT customers.customerName, customers.contactLastName, customers.contactFirstName 
-    FROM customers
-    ORDER BY customers.contactLastName 
-    LIMIT 5
-    """
 
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
+@app.get("/q3/customers-first-5")
+def customers_first_5():
+    rows = dal.q3_first_5_customers()
 
     results = []
     for row in rows:
@@ -87,80 +187,47 @@ def get_first_5_customers():
             {
                 "customerName": row[0],
                 "contactLastName": row[1],
-                "contactFirstName ": row[2],
+                "contactFirstName": row[2],
             }
         )
 
-    return results
+    return {"results": results}
 
-# 4
-def get_payments_total_and_average():
-    """Return total and average payment amounts."""
 
-    sql = """
-    SELECT SUM(payments.amount) as TotalSum, AVG(payments.amount) as AvgResult ,MIN(payments.amount) as MinPay ,MAX(payments.amount) as MaxPay
-    FROM payments
-    """
-
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    row = cursor.fetchone()
-    cursor.close()
-    connection.close()
+@app.get("/q4/payments-total-average")
+def payments_total_average():
+    row = dal.q4_payments_total_and_average()
 
     return {
-        "TotalSum": row[0],
-        "AvgResult": row[1],
-        "MinPay": row[2],
-        "MaxPay": row[3],
+        "results": {
+            "totalSum": row[0],
+            "avgResult": row[1],
+            "minPay": row[2],
+            "maxPay": row[3],
+        }
     }
 
-# 5
-def get_employees_with_office_phone():
-    """return employees with their office phone numbers"""
 
-    sql = """
-    SELECT employees.firstName, employees.lastName, offices.phone
-    FROM employees
-    JOIN offices ON employees.officeCode = offices.officeCode
-    """
-
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
+@app.get("/q5/employees-office-phone")
+def employees_office_phone():
+    rows = dal.q5_employees_with_office_phone()
 
     results = []
     for row in rows:
         results.append(
             {
-                "firstNamer": row[0],
+                "firstName": row[0],
                 "lastName": row[1],
                 "phone": row[2],
             }
         )
 
-    return results
+    return {"results": results}
 
-# 6
-def get_customers_with_shipping_dates():
-    """Return customers with their order shipping dates."""
 
-    sql = """
-    SELECT customers.customerName, orders.shippedDate
-    FROM customers
-    JOIN orders ON customers.customerNumber = orders.customerNumber
-    """
-
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
+@app.get("/q6/customers-shipping-dates")
+def customers_shipping_dates():
+    rows = dal.q6_customers_with_shipping_dates()
 
     results = []
     for row in rows:
@@ -171,114 +238,39 @@ def get_customers_with_shipping_dates():
             }
         )
 
-    return results
+    return {"results": results}
 
-# 7
-def get_customer_quantity_per_order():
-    """Return customer name and quantity for each order."""
-
-    sql = """
-    SELECT customers.customerName, orderdetails.quantityOrdered 
-    FROM customers
-    JOIN orders ON customers.customerNumber = orders.customerNumber
-    JOIN orderdetails ON orders.orderNumber = orderdetails.orderNumber
-    ORDER BY customers.customerName
-    """
-
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
-
-    results = []
-    for row in rows:
-        results.append(
-            {
-                "customerName": row[0],
-                "totalQuantityOrdered": row[1],
-            }
-        )
-
-    return results
-
-# 8
-def get_customers_payments_by_lastname_pattern():
-    """Return customers and payments for last names matching pattern."""
-
-    sql = """
-    SELECT customers.customerName, customers.contactFirstName, SUM(payments.amount)
-    FROM customers
-    JOIN payments ON customers.customerNumber = payments.customerNumber
-    WHERE customers.contactFirstName LIKE '%Mu%'
-    OR customers.contactFirstName LIKE '%ly%'
-    GROUP BY customers.customerNumber
-    """
-
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
-
-    results = []
-    for row in rows:
-        results.append(
-            {
-                "customerName": row[0],
-                "contactFirstName": row[1],
-            }
-        )
-
-
-
-
-
-now make the main to be connected 
-
-from fastapi import FastAPI
-from db_init import init_database
-
-
-
-app = FastAPI()
-
-init_database()
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
-
-@app.get("/q1/customers-credit-limit-outliers")
-def customers_credit_limit_outliers():
-    pass
-
-@app.get("/q2/orders-null-comments")
-def orders_null_comments():
-    pass
-
-@app.get("/q3/customers-first-5")
-def customers_first_5():
-    pass
-
-@app.get("/q4/payments-total-average")
-def payments_total_average():
-    pass
-
-@app.get("/q5/employees-office-phone")
-def employees_office_phone():
-    pass
-
-@app.get("/q6/customers-shipping-dates")
-def customers_shipping_dates():
-    pass
 
 @app.get("/q7/customer-quantity-per-order")
 def customer_quantity_per_order():
-    pass
+    rows = dal.q7_customer_quantity_per_order()
+
+    results = []
+    for row in rows:
+        results.append(
+            {
+                "customerName": row[0],
+                "quantityOrdered": row[1],
+            }
+        )
+
+    return {"results": results}
+
 
 @app.get("/q8/customers-payments-by-lastname-pattern")
-def customers_payments_by_lastname_pattern(pattern: str = "son"):
-    pass
+def customers_payments_by_lastname_pattern(pattern="son"):
+    # pattern is the query param and dal uses it inside a like filter
+    rows = dal.q8_customers_payments_by_lastname_pattern(pattern)
+
+    results = []
+    for row in rows:
+        results.append(
+            {
+                "customerName": row[0],
+                "contactLastName": row[1],
+                "totalPaymentsAmount": row[2],
+            }
+        )
+
+    return {"results": results}
+```
