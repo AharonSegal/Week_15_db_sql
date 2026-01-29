@@ -19,7 +19,7 @@ def init_database():
         try:
             # Connect to MySQL server (without specifying database)
             connection = mysql.connector.connect(
-                host='mysql',
+                host='localhost',
                 user='root',
                 password='rootpassword',
                 use_pure=True

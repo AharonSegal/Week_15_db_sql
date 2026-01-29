@@ -1,6 +1,8 @@
 from typing import List, Dict, Any
 from db import get_db_connection
 
+# THIS BRANCH IS FOR WRITING AND TESTING THE SQL LOCALLY 
+
 # 1 
 def get_customers_by_credit_limit_range():
     """Return customers with credit limits outside the normal range."""
@@ -30,6 +32,9 @@ def get_customers_by_credit_limit_range():
 
     return results
 
+# q_1 = get_customers_by_credit_limit_range()
+# print(q_1)
+
 # 2 
 def get_orders_with_null_comments():
     """Return orders that have null comments."""
@@ -57,6 +62,9 @@ def get_orders_with_null_comments():
         )
 
     return results
+
+# q_2 = get_orders_with_null_comments()
+# print(q_2)
 
 # 3
 def get_first_5_customers():
@@ -86,13 +94,16 @@ def get_first_5_customers():
         )
 
     return results
+ 
+# q_3 = get_first_5_customers()
+# print(q_3)
 
 # 4
 def get_payments_total_and_average():
     """Return total and average payment amounts."""
 
     sql = """
-    SELECT SUM(payments.amount), AVG(payments.amount),MIN(payments.amount),MAX(payments.amount)
+    SELECT SUM(payments.amount) as TotalSum, AVG(payments.amount) as AvgResult ,MIN(payments.amount) as MinPay ,MAX(payments.amount) as MaxPay
     FROM payments
     """
 
@@ -104,9 +115,14 @@ def get_payments_total_and_average():
     connection.close()
 
     return {
-        "totalAmount": row[0],
-        "averageAmount": row[1],
+        "TotalSum": row[0],
+        "AvgResult": row[1],
+        "MinPay": row[2],
+        "MaxPay": row[3],
     }
+
+# q_4 = get_payments_total_and_average()
+# print(q_4)
 
 # 5
 def get_employees_with_office_phone():
@@ -137,6 +153,9 @@ def get_employees_with_office_phone():
 
     return results
 
+# q_5 = get_employees_with_office_phone()
+# print(q_5)
+
 # 6
 def get_customers_with_shipping_dates():
     """Return customers with their order shipping dates."""
@@ -164,6 +183,9 @@ def get_customers_with_shipping_dates():
         )
 
     return results
+
+# q_6 = get_customers_with_shipping_dates()
+# print(q_6)
 
 # 7
 def get_customer_quantity_per_order():
@@ -195,6 +217,8 @@ def get_customer_quantity_per_order():
 
     return results
 
+# q_7 = get_customer_quantity_per_order()
+# print(q_7)
 
 # 8
 def get_customers_payments_by_lastname_pattern():
@@ -224,3 +248,6 @@ def get_customers_payments_by_lastname_pattern():
                 "contactFirstName": row[1],
             }
         )
+
+# q_8 = get_customers_payments_by_lastname_pattern()
+# print(q_8)
