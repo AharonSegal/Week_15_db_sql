@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlbasic-api-service
+spec:
+  type: ClusterIP
+  selector:
+    app: sqlbasic-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+

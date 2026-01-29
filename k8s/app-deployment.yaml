@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlbasic-api-deployment
+spec:
+  replicas:  2
+  selector:
+    matchLabels:
+      app: sqlbasic-api
+  template:
+    metadata:
+      labels:
+        app: sqlbasic-api
+    spec:
+      containers:
+        - name: sqlbasic-container
+          image: aharonsegal/sqlbasic:latest
+          ports:
+            - containerPort: 8000
